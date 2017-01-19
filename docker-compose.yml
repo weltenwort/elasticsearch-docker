@@ -7,16 +7,19 @@ services:
   # docker run --rm --cap-add=IPC_LOCK --ulimit memlock=-1:-1 --ulimit nofile=65536:65536 -t -P --memory="4g" -e "discovery.zen.minimum_master_nodes=${ES_NODE_COUNT}" -v esdata:/usr/share/elasticsearch/data docker.elastic.co/elasticsearch/elasticsearch:5.0.0-rc1
     build:
       context: build/elasticsearch
+      dockerfile: Dockerfile
       args:
         ELASTIC_VERSION: "${ELASTIC_VERSION}"
-        ES_DOWNLOAD_URL: "${ES_DOWNLOAD_URL}"
+        ES_DOWNLOAD_URL_PREFIX: "${ES_DOWNLOAD_URL_PREFIX}"
         ES_JAVA_OPTS: "${ES_JAVA_OPTS}"
     cap_add:
       - IPC_LOCK
-    environment:
-      - discovery.zen.minimum_master_nodes=${ES_NODE_COUNT}
-    image: "${VERSIONED_IMAGE}"
-    mem_limit: 4g
+    command: "bin/elasticsearch -E discovery.zen.minimum_master_nodes=$${ES_NODE_COUNT:-1}"
+    image: "elasticsearch:${ELASTIC_VERSION}"
+    mem_limit: 2g
+    ports:
+      - 9200:9200
+      - 9300
     ulimits:
       memlock:
         soft: -1
@@ -29,19 +32,21 @@ services:
   elasticsearch2:
     build:
       context: build/elasticsearch
+      dockerfile: Dockerfile
       args:
         ELASTIC_VERSION: "${ELASTIC_VERSION}"
-        ES_DOWNLOAD_URL: "${ES_DOWNLOAD_URL}"
+        ES_DOWNLOAD_URL_PREFIX: "${ES_DOWNLOAD_URL_PREFIX}"
         ES_JAVA_OPTS: "${ES_JAVA_OPTS}"
     cap_add:
       - IPC_LOCK
-    environment:
-      - discovery.zen.ping.unicast.hosts=elasticsearch1
-      - discovery.zen.minimum_master_nodes=${ES_NODE_COUNT}
-    image: "${VERSIONED_IMAGE}"
+    command: "bin/elasticsearch -E discovery.zen.ping.unicast.hosts=elasticsearch1 -E discovery.zen.minimum_master_nodes=$${ES_NODE_COUNT:-1}"
+    image: "elasticsearch:${ELASTIC_VERSION}"
     links:
       - elasticsearch1
-    mem_limit: 4g
+    mem_limit: 2g
+    ports:
+      - 9200
+      - 9300
     ulimits:
       memlock:
         soft: -1
